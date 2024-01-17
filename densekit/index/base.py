@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from densekit.types import Metric, SearchResult, VALID_METRICS
+from densekit.types import VALID_METRICS, Metric, SearchResult
 
 
 class BaseIndex(ABC):
