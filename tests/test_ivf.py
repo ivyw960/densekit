@@ -1,5 +1,4 @@
 import numpy as np
-
 from densekit.index import FlatIndex, IVFIndex
 
 
