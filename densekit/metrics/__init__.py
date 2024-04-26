@@ -1,6 +1,5 @@
-"""Ranking-quality metrics for retrieval evaluation.
+"""Ranking-quality metrics for retrieval evaluation."""
 
-Populated in later commits with recall@k, precision@k, nDCG@k, MRR and MAP.
-"""
+from densekit.metrics.ranking import precision_at_k, recall_at_k
 
-__all__: list[str] = []
+__all__ = ["precision_at_k", "recall_at_k"]
