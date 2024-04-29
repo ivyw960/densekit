@@ -7,7 +7,8 @@ metric over many queries. Ids may be Python ints or NumPy integers.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+import math
+from collections.abc import Iterable, Mapping, Sequence
 
 
 def _as_set(relevant: Iterable[int]) -> set[int]:
@@ -31,3 +32,21 @@ def precision_at_k(ranked: Sequence[int], relevant: Iterable[int], k: int) -> fl
     rel = _as_set(relevant)
     hits = sum(1 for d in ranked[:k] if int(d) in rel)
     return hits / k
+
+
+def _dcg(gains: Sequence[float]) -> float:
+    return sum(g / math.log2(i + 2) for i, g in enumerate(gains))
+
+
+def ndcg_at_k(ranked: Sequence[int], relevance: Mapping[int, float], k: int) -> float:
+    """Normalized discounted cumulative gain at ``k`` with graded relevance.
+
+    ``relevance`` maps document id to a non-negative gain; documents missing
+    from the mapping contribute zero. The score is the achieved DCG divided by
+    the DCG of the ideal ranking, so it lies in ``[0, 1]``.
+    """
+    graded = {int(d): float(g) for d, g in relevance.items()}
+    gains = [graded.get(int(d), 0.0) for d in ranked[:k]]
+    ideal = sorted(graded.values(), reverse=True)[:k]
+    idcg = _dcg(ideal)
+    return _dcg(gains) / idcg if idcg > 0 else 0.0
