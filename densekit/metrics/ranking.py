@@ -50,3 +50,30 @@ def ndcg_at_k(ranked: Sequence[int], relevance: Mapping[int, float], k: int) -> 
     ideal = sorted(graded.values(), reverse=True)[:k]
     idcg = _dcg(ideal)
     return _dcg(gains) / idcg if idcg > 0 else 0.0
+
+
+def reciprocal_rank(ranked: Sequence[int], relevant: Iterable[int]) -> float:
+    """Reciprocal of the rank of the first relevant document (0 if none)."""
+    rel = _as_set(relevant)
+    for i, d in enumerate(ranked):
+        if int(d) in rel:
+            return 1.0 / (i + 1)
+    return 0.0
+
+
+def average_precision(
+    ranked: Sequence[int], relevant: Iterable[int], k: int | None = None
+) -> float:
+    """Average precision over the (optionally truncated) ranking."""
+    rel = _as_set(relevant)
+    if not rel:
+        return 0.0
+    ordered = ranked[:k] if k is not None else ranked
+    hits = 0
+    score = 0.0
+    for i, d in enumerate(ordered):
+        if int(d) in rel:
+            hits += 1
+            score += hits / (i + 1)
+    denom = min(len(rel), k) if k is not None else len(rel)
+    return score / denom
