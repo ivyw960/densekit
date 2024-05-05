@@ -77,3 +77,29 @@ def average_precision(
             score += hits / (i + 1)
     denom = min(len(rel), k) if k is not None else len(rel)
     return score / denom
+
+
+def hit_rate_at_k(ranked: Sequence[int], relevant: Iterable[int], k: int) -> float:
+    """1.0 if any relevant document is in the top ``k``, else 0.0."""
+    rel = _as_set(relevant)
+    return 1.0 if any(int(d) in rel for d in ranked[:k]) else 0.0
+
+
+def mrr(rankings: Sequence[Sequence[int]], relevants: Sequence[Iterable[int]]) -> float:
+    """Mean reciprocal rank across a batch of queries."""
+    if not rankings:
+        return 0.0
+    scores = [reciprocal_rank(r, rel) for r, rel in zip(rankings, relevants, strict=True)]
+    return sum(scores) / len(scores)
+
+
+def mean_average_precision(
+    rankings: Sequence[Sequence[int]],
+    relevants: Sequence[Iterable[int]],
+    k: int | None = None,
+) -> float:
+    """Mean average precision (MAP) across a batch of queries."""
+    if not rankings:
+        return 0.0
+    scores = [average_precision(r, rel, k) for r, rel in zip(rankings, relevants, strict=True)]
+    return sum(scores) / len(scores)
