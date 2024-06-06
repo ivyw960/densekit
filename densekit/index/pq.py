@@ -67,7 +67,11 @@ class ProductQuantizer:
         for s in range(self.m):
             sub = self._subspace(x, s)
             book = self._codebooks[s]
-            dist = np.sum(sub**2, axis=1, keepdims=True) - 2.0 * sub @ book.T
+            # full squared distance: ||sub||^2 - 2 sub.c + ||c||^2. The middle
+            # and last terms both vary across centroids, so keep the codebook norm.
+            dist = (
+                np.sum(sub**2, axis=1, keepdims=True) - 2.0 * sub @ book.T + np.sum(book**2, axis=1)
+            )
             codes[:, s] = np.argmin(dist, axis=1).astype(np.uint8)
         return codes
 
