@@ -3,20 +3,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypeAlias
 
 import numpy as np
-from numpy.typing import NDArray
 
 # Public type aliases. densekit stores embeddings as 2D float arrays with one
-# row per item, and returns integer ids alongside float similarity scores.
-FloatArray = NDArray[np.floating]
-IntArray = NDArray[np.integer]
+# row per item, and returns integer ids alongside float similarity scores. We
+# alias the bare ``np.ndarray`` (rather than ``NDArray[np.floating]``) so the
+# annotations stay portable across NumPy/mypy versions; the names document the
+# intended dtype at each boundary.
+FloatArray: TypeAlias = np.ndarray
+IntArray: TypeAlias = np.ndarray
 
 # Similarity/distance modes understood by the indexes. "cosine" and "dot" are
 # treated as similarities (higher is better); "l2" is a distance that is
 # negated internally so that ranking stays "higher is better" everywhere.
-Metric = Literal["cosine", "dot", "l2"]
+Metric: TypeAlias = Literal["cosine", "dot", "l2"]
 
 VALID_METRICS: tuple[Metric, ...] = ("cosine", "dot", "l2")
 
