@@ -16,8 +16,9 @@ import numpy as np
 
 from densekit.data import Corpus
 from densekit.encoders import HashingEncoder
+from densekit.eval import Qrels, RetrievalEvaluator
 from densekit.index import BaseIndex, FlatIndex, IVFIndex, LSHIndex, PQIndex
-from densekit.io import save_index
+from densekit.io import load_index, save_index
 
 
 def _make_index(kind: str, dim: int, args: argparse.Namespace) -> BaseIndex:
@@ -61,6 +62,37 @@ def _cmd_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_search(args: argparse.Namespace) -> int:
+    index = load_index(args.index)
+    queries = np.load(args.queries)
+    result = index.search(queries, k=args.k)
+    for i in range(result.n_queries):
+        hits = [{"id": idx, "score": score} for idx, score in result.for_query(i)]
+        print(json.dumps({"query": i, "hits": hits}))
+    return 0
+
+
+def _cmd_evaluate(args: argparse.Namespace) -> int:
+    qrels = Qrels()
+    with Path(args.qrels).open(encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                row = json.loads(line)
+                qrels.add(row["query_id"], row["doc_id"], float(row.get("relevance", 1.0)))
+
+    run: dict[str, list[str]] = {}
+    with Path(args.run).open(encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                row = json.loads(line)
+                run[str(row["query_id"])] = [str(d) for d in row["doc_ids"]]
+
+    evaluator = RetrievalEvaluator(qrels, k_values=args.k)
+    scores = evaluator.evaluate(run)
+    print(json.dumps(scores, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="densekit", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -87,6 +119,20 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--pq-bits", dest="pq_bits", type=int, default=8)
     build.add_argument("--seed", type=int, default=0)
     build.set_defaults(func=_cmd_build)
+
+    search = sub.add_parser("search", help="search an index with query embeddings")
+    search.add_argument("--index", required=True, help="input index .npz")
+    search.add_argument("--queries", required=True, help="query embeddings .npy")
+    search.add_argument("--k", type=int, default=10)
+    search.set_defaults(func=_cmd_search)
+
+    evaluate = sub.add_parser("evaluate", help="score a run against qrels")
+    evaluate.add_argument("--run", required=True, help="run JSONL (query_id, doc_ids)")
+    evaluate.add_argument(
+        "--qrels", required=True, help="qrels JSONL (query_id, doc_id, relevance)"
+    )
+    evaluate.add_argument("--k", type=int, nargs="+", default=[1, 5, 10])
+    evaluate.set_defaults(func=_cmd_evaluate)
 
     return parser
 
