@@ -25,6 +25,9 @@ dev = [
 Homepage = "https://github.com/ivyw960/densekit"
 Issues = "https://github.com/ivyw960/densekit/issues"
 
+[project.scripts]
+densekit = "densekit.cli:main"
+
 [tool.hatch.version]
 path = "densekit/__about__.py"
 
