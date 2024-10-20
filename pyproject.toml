@@ -52,7 +52,7 @@ no_implicit_optional = true
 files = ["densekit"]
 
 [[tool.mypy.overrides]]
-module = ["torch.*"]
+module = ["torch", "torch.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
