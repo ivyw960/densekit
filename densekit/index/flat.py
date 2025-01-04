@@ -10,22 +10,8 @@ from __future__ import annotations
 import numpy as np
 
 from densekit.index.base import BaseIndex
-from densekit.linalg import as_float2d, euclidean_distances, l2_normalize
-from densekit.types import FloatArray, IntArray, Metric, SearchResult
-
-
-def _topk(scores: FloatArray, k: int) -> tuple[IntArray, FloatArray]:
-    """Return the indices and scores of the top-``k`` columns per row, desc."""
-    n = scores.shape[1]
-    k = min(k, n)
-    rows = np.arange(scores.shape[0])[:, None]
-    if k >= n:
-        order = np.argsort(-scores, axis=1)
-    else:
-        part = np.argpartition(-scores, k - 1, axis=1)[:, :k]
-        local_order = np.argsort(-scores[rows, part], axis=1)
-        order = part[rows, local_order]
-    return order.astype(np.int64), scores[rows, order].astype(np.float32)
+from densekit.linalg import as_float2d, euclidean_distances, l2_normalize, top_k
+from densekit.types import FloatArray, Metric, SearchResult
 
 
 class FlatIndex(BaseIndex):
@@ -61,5 +47,5 @@ class FlatIndex(BaseIndex):
             msg = "cannot search an empty index"
             raise RuntimeError(msg)
         scores = self._scores(queries)
-        indices, top_scores = _topk(scores, k)
+        indices, top_scores = top_k(scores, k)
         return SearchResult(indices=indices, scores=top_scores)
