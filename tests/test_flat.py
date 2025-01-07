@@ -41,3 +41,12 @@ def test_search_empty_index_raises() -> None:
     idx = FlatIndex(dim=8)
     with pytest.raises(RuntimeError, match="empty index"):
         idx.search(_corpus(1, 8), k=1)
+
+
+def test_empty_query_batch_returns_empty_result() -> None:
+    import numpy as np
+
+    idx = FlatIndex(dim=8)
+    idx.add(_corpus(5, 8))
+    res = idx.search(np.empty((0, 8), dtype=np.float32), k=3)
+    assert res.n_queries == 0

@@ -46,6 +46,13 @@ class FlatIndex(BaseIndex):
         if self.size == 0:
             msg = "cannot search an empty index"
             raise RuntimeError(msg)
-        scores = self._scores(queries)
+        q = as_float2d(queries)
+        if q.shape[0] == 0:
+            # an empty query batch yields an empty, well-shaped result
+            return SearchResult(
+                indices=np.empty((0, 0), dtype=np.int64),
+                scores=np.empty((0, 0), dtype=np.float32),
+            )
+        scores = self._scores(q)
         indices, top_scores = top_k(scores, k)
         return SearchResult(indices=indices, scores=top_scores)
