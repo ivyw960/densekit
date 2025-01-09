@@ -1,5 +1,5 @@
 import numpy as np
-from densekit.cluster import kmeans
+from densekit.clustering import kmeans
 
 
 def _blobs(seed: int = 0) -> np.ndarray:

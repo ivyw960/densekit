@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from densekit.cluster import kmeans
+from densekit.clustering import kmeans
 from densekit.index.base import BaseIndex
 from densekit.linalg import as_float2d, l2_normalize
 from densekit.types import FloatArray, Metric, SearchResult
