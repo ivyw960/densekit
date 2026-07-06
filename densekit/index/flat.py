@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 
 from densekit.index.base import BaseIndex
-from densekit.linalg import as_float2d, l2_normalize
+from densekit.linalg import as_float2d, euclidean_distances, l2_normalize
 from densekit.types import FloatArray, IntArray, Metric, SearchResult
 
 
@@ -48,8 +48,13 @@ class FlatIndex(BaseIndex):
 
     def _scores(self, queries: np.ndarray) -> FloatArray:
         q = as_float2d(queries)
-        # cosine == dot product on unit vectors, which is how we store them.
-        return np.asarray(l2_normalize(q) @ self._vectors.T, dtype=np.float32)
+        if self.metric == "cosine":
+            # cosine == dot product on unit vectors, which is how we store them.
+            return np.asarray(l2_normalize(q) @ self._vectors.T, dtype=np.float32)
+        if self.metric == "dot":
+            return np.asarray(q @ self._vectors.T, dtype=np.float32)
+        # l2: rank by *negative* distance so that "higher is better" holds.
+        return np.asarray(-euclidean_distances(q, self._vectors), dtype=np.float32)
 
     def search(self, queries: np.ndarray, k: int = 10) -> SearchResult:
         if self.size == 0:
