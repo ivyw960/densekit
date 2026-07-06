@@ -38,3 +38,25 @@ def dot_scores(queries: np.ndarray, corpus: np.ndarray) -> FloatArray:
     q = as_float2d(queries)
     c = as_float2d(corpus)
     return np.asarray(q @ c.T, dtype=np.float32)
+
+
+def cosine_scores(queries: np.ndarray, corpus: np.ndarray) -> FloatArray:
+    """Cosine-similarity matrix of shape ``(n_queries, n_corpus)``."""
+    q = l2_normalize(as_float2d(queries))
+    c = l2_normalize(as_float2d(corpus))
+    return np.asarray(q @ c.T, dtype=np.float32)
+
+
+def euclidean_distances(queries: np.ndarray, corpus: np.ndarray) -> FloatArray:
+    """Pairwise Euclidean distances of shape ``(n_queries, n_corpus)``.
+
+    Uses the expanded ``||a - b||^2 = ||a||^2 + ||b||^2 - 2 a·b`` form, which is
+    a single matmul plus two norm vectors. Tiny negatives from rounding are
+    clipped before the square root.
+    """
+    q = as_float2d(queries)
+    c = as_float2d(corpus)
+    q_sq = np.sum(q * q, axis=1, keepdims=True)
+    c_sq = np.sum(c * c, axis=1, keepdims=True).T
+    sq = q_sq + c_sq - 2.0 * (q @ c.T)
+    return np.asarray(np.sqrt(np.maximum(sq, 0.0)), dtype=np.float32)
