@@ -71,8 +71,18 @@ class LSHIndex(BaseIndex):
                 table.setdefault(int(code), []).append(start + offset)
 
     def _order_buckets(self, keys: list[int], query_code: int) -> list[int]:
-        """Bucket keys ordered by Hamming distance to the query code."""
-        return sorted(keys, key=lambda code: (code ^ query_code).bit_count())
+        """Bucket keys ordered by Hamming distance to the query code.
+
+        The Hamming distances are computed for all buckets at once: XOR against
+        the query code, then a vectorized byte-wise popcount via ``unpackbits``.
+        """
+        if not keys:
+            return []
+        arr = np.asarray(keys, dtype=np.int64)
+        xor = (arr ^ np.int64(query_code)).astype(np.uint64)
+        counts = np.unpackbits(xor.view(np.uint8).reshape(-1, 8), axis=1).sum(axis=1)
+        order = np.argsort(counts, kind="stable")
+        return [int(arr[i]) for i in order]
 
     def _score(self, query: FloatArray, candidates: FloatArray) -> FloatArray:
         if self.metric == "l2":
