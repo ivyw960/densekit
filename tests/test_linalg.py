@@ -1,5 +1,4 @@
 import numpy as np
-
 from densekit.linalg import (
     as_float2d,
     cosine_scores,
