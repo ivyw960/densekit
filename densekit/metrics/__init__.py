@@ -2,6 +2,9 @@
 
 from densekit.metrics.ranking import (
     average_precision,
+    hit_rate_at_k,
+    mean_average_precision,
+    mrr,
     ndcg_at_k,
     precision_at_k,
     recall_at_k,
@@ -10,6 +13,9 @@ from densekit.metrics.ranking import (
 
 __all__ = [
     "average_precision",
+    "hit_rate_at_k",
+    "mean_average_precision",
+    "mrr",
     "ndcg_at_k",
     "precision_at_k",
     "recall_at_k",
