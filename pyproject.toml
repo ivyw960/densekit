@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "densekit"
+dynamic = ["version"]
+description = "An offline-first dense retrieval and embedding toolkit for RAG"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Tang Simu" }]
+dependencies = ["numpy>=1.23"]
+
+[tool.hatch.version]
+path = "densekit/__about__.py"
