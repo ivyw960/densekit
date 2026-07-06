@@ -71,5 +71,33 @@ class IVFIndex(BaseIndex):
         self._vectors = np.vstack([self._vectors, v]) if self.size else v
         self._cell_of.extend(int(c) for c in cells)
 
+    def _score(self, query: FloatArray, candidates: FloatArray) -> FloatArray:
+        if self.metric == "l2":
+            return np.asarray(-euclidean_distances(query, candidates)[0], dtype=np.float32)
+        return np.asarray((candidates @ query.T).ravel(), dtype=np.float32)
+
     def search(self, queries: np.ndarray, k: int = 10) -> SearchResult:
-        raise NotImplementedError  # implemented in a follow-up commit
+        if self._centroids is None or self.size == 0:
+            msg = "cannot search an empty or untrained index"
+            raise RuntimeError(msg)
+        q = self._prepare(queries)
+        cell_of = np.asarray(self._cell_of)
+        # rank cells per query (nearest centroids first) and probe the top ones
+        centroid_dist = euclidean_distances(q, self._centroids)
+        probe = min(self.nprobe, self.nlist)
+        probed = np.argsort(centroid_dist, axis=1)[:, :probe]
+
+        all_idx = np.full((q.shape[0], k), -1, dtype=np.int64)
+        all_scores = np.full((q.shape[0], k), -np.inf, dtype=np.float32)
+        for i in range(q.shape[0]):
+            mask = np.isin(cell_of, probed[i])
+            candidates = np.nonzero(mask)[0]
+            if candidates.size == 0:
+                continue
+            scores = self._score(q[i : i + 1], self._vectors[candidates])
+            k_eff = min(k, candidates.size)
+            local = np.argpartition(-scores, k_eff - 1)[:k_eff]
+            local = local[np.argsort(-scores[local])]
+            all_idx[i, :k_eff] = candidates[local]
+            all_scores[i, :k_eff] = scores[local]
+        return SearchResult(indices=all_idx, scores=all_scores)
