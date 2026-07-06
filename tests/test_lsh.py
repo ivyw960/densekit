@@ -14,12 +14,12 @@ def test_lsh_finds_nearest_neighbours() -> None:
     flat.add(corpus)
     gold = flat.search(queries, k=5).indices
 
-    lsh = LSHIndex(dim=32, n_bits=12, n_tables=12, metric="cosine", seed=0)
+    lsh = LSHIndex(dim=32, n_bits=12, n_tables=16, metric="cosine", seed=0, candidate_budget=300)
     lsh.add(corpus)
     approx = lsh.search(queries, k=5).indices
 
     hits = sum(len(set(g) & set(a)) for g, a in zip(gold, approx, strict=True))
-    assert hits / gold.size > 0.6
+    assert hits / gold.size > 0.8
 
 
 def test_lsh_rejects_bad_bits() -> None:

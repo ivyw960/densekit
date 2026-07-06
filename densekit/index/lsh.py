@@ -89,13 +89,20 @@ class LSHIndex(BaseIndex):
         all_idx = np.full((q.shape[0], k), -1, dtype=np.int64)
         all_scores = np.full((q.shape[0], k), -np.inf, dtype=np.float32)
         for i in range(q.shape[0]):
+            # Rank each table's buckets by Hamming distance to the query, then
+            # gather them breadth-first (nearest bucket of every table, then the
+            # next-nearest, ...) so no single table dominates the candidate set.
+            orders = [
+                self._order_buckets(list(self._tables[t]), int(self._codes(q[i : i + 1], t)[0]))
+                for t in range(self.n_tables)
+            ]
             found: set[int] = set()
-            for t in range(self.n_tables):
-                query_code = int(self._codes(q[i : i + 1], t)[0])
-                for code in self._order_buckets(list(self._tables[t]), query_code):
-                    found.update(self._tables[t][code])
-                    if len(found) >= budget:
-                        break
+            depth = 0
+            while len(found) < budget and any(depth < len(o) for o in orders):
+                for t, order in enumerate(orders):
+                    if depth < len(order):
+                        found.update(self._tables[t][order[depth]])
+                depth += 1
             candidates = np.fromiter(found, dtype=np.int64)
             if candidates.size == 0:
                 continue
