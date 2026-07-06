@@ -3,24 +3,26 @@
 Each function scores a single ranked list of retrieved document ids against a
 set (or graded mapping) of relevance judgements. Aggregation helpers average a
 metric over many queries. Document ids may be strings or (NumPy) integers -- the
-metrics only rely on equality and hashing, never on the id being numeric.
+metrics only rely on equality and hashing, never on the id being numeric, so the
+id type is a single generic ``Id`` shared by the ranking and the judgements.
 """
 
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Hashable, Iterable, Mapping, Sequence
+from typing import TypeVar
 
 # A document id is anything hashable; in practice a corpus id string or an
 # integer row index returned by an index.
-DocId = int | str
+Id = TypeVar("Id", bound=Hashable)
 
 
-def _as_set(relevant: Iterable[DocId]) -> set[DocId]:
+def _as_set(relevant: Iterable[Id]) -> set[Id]:
     return set(relevant)
 
 
-def recall_at_k(ranked: Sequence[DocId], relevant: Iterable[DocId], k: int) -> float:
+def recall_at_k(ranked: Sequence[Id], relevant: Iterable[Id], k: int) -> float:
     """Fraction of the relevant documents that appear in the top ``k``."""
     rel = _as_set(relevant)
     if not rel:
@@ -29,7 +31,7 @@ def recall_at_k(ranked: Sequence[DocId], relevant: Iterable[DocId], k: int) -> f
     return hits / len(rel)
 
 
-def precision_at_k(ranked: Sequence[DocId], relevant: Iterable[DocId], k: int) -> float:
+def precision_at_k(ranked: Sequence[Id], relevant: Iterable[Id], k: int) -> float:
     """Fraction of the top ``k`` results that are relevant."""
     if k <= 0:
         msg = "k must be positive"
@@ -43,7 +45,7 @@ def _dcg(gains: Sequence[float]) -> float:
     return sum(g / math.log2(i + 2) for i, g in enumerate(gains))
 
 
-def ndcg_at_k(ranked: Sequence[DocId], relevance: Mapping[DocId, float], k: int) -> float:
+def ndcg_at_k(ranked: Sequence[Id], relevance: Mapping[Id, float], k: int) -> float:
     """Normalized discounted cumulative gain at ``k`` with graded relevance.
 
     ``relevance`` maps document id to a non-negative gain; documents missing
@@ -56,7 +58,7 @@ def ndcg_at_k(ranked: Sequence[DocId], relevance: Mapping[DocId, float], k: int)
     return _dcg(gains) / idcg if idcg > 0 else 0.0
 
 
-def reciprocal_rank(ranked: Sequence[DocId], relevant: Iterable[DocId]) -> float:
+def reciprocal_rank(ranked: Sequence[Id], relevant: Iterable[Id]) -> float:
     """Reciprocal of the rank of the first relevant document (0 if none)."""
     rel = _as_set(relevant)
     for i, d in enumerate(ranked):
@@ -65,9 +67,7 @@ def reciprocal_rank(ranked: Sequence[DocId], relevant: Iterable[DocId]) -> float
     return 0.0
 
 
-def average_precision(
-    ranked: Sequence[DocId], relevant: Iterable[DocId], k: int | None = None
-) -> float:
+def average_precision(ranked: Sequence[Id], relevant: Iterable[Id], k: int | None = None) -> float:
     """Average precision over the (optionally truncated) ranking."""
     rel = _as_set(relevant)
     if not rel:
@@ -83,13 +83,13 @@ def average_precision(
     return score / denom
 
 
-def hit_rate_at_k(ranked: Sequence[DocId], relevant: Iterable[DocId], k: int) -> float:
+def hit_rate_at_k(ranked: Sequence[Id], relevant: Iterable[Id], k: int) -> float:
     """1.0 if any relevant document is in the top ``k``, else 0.0."""
     rel = _as_set(relevant)
     return 1.0 if any(d in rel for d in ranked[:k]) else 0.0
 
 
-def mrr(rankings: Sequence[Sequence[DocId]], relevants: Sequence[Iterable[DocId]]) -> float:
+def mrr(rankings: Sequence[Sequence[Id]], relevants: Sequence[Iterable[Id]]) -> float:
     """Mean reciprocal rank across a batch of queries."""
     if not rankings:
         return 0.0
@@ -98,8 +98,8 @@ def mrr(rankings: Sequence[Sequence[DocId]], relevants: Sequence[Iterable[DocId]
 
 
 def mean_average_precision(
-    rankings: Sequence[Sequence[DocId]],
-    relevants: Sequence[Iterable[DocId]],
+    rankings: Sequence[Sequence[Id]],
+    relevants: Sequence[Iterable[Id]],
     k: int | None = None,
 ) -> float:
     """Mean average precision (MAP) across a batch of queries."""
