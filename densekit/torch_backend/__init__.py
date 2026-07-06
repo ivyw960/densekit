@@ -14,5 +14,13 @@ except ImportError as exc:  # pragma: no cover - exercised only without torch
 
 from densekit.torch_backend.bi_encoder import BiEncoder, HashingTokenizer
 from densekit.torch_backend.pooling import cls_pool, mean_pool
+from densekit.torch_backend.trainer import BiEncoderTrainer, TrainConfig
 
-__all__ = ["BiEncoder", "HashingTokenizer", "cls_pool", "mean_pool"]
+__all__ = [
+    "BiEncoder",
+    "BiEncoderTrainer",
+    "HashingTokenizer",
+    "TrainConfig",
+    "cls_pool",
+    "mean_pool",
+]
