@@ -24,6 +24,9 @@ def save_index(index: BaseIndex, path: str | Path) -> None:
     if isinstance(index, FlatIndex):
         np.savez(path, meta=json.dumps(meta), vectors=index._vectors)
     elif isinstance(index, IVFIndex):
+        if index._centroids is None:
+            msg = "cannot save an untrained IVF index"
+            raise RuntimeError(msg)
         meta.update(nlist=index.nlist, nprobe=index.nprobe, seed=index.seed)
         np.savez(
             path,
@@ -38,6 +41,9 @@ def save_index(index: BaseIndex, path: str | Path) -> None:
             path, meta=json.dumps(meta), vectors=index._vectors, planes=np.stack(index._planes)
         )
     elif isinstance(index, PQIndex):
+        if index.pq._codebooks is None:
+            msg = "cannot save an unfitted PQ index"
+            raise RuntimeError(msg)
         meta.update(n_subvectors=index.pq.m, n_bits=int(index.pq.ksub).bit_length() - 1)
         np.savez(path, meta=json.dumps(meta), codebooks=index.pq._codebooks, codes=index._codes)
     else:  # pragma: no cover - defensive
@@ -51,15 +57,16 @@ def load_index(path: str | Path) -> BaseIndex:
         meta = json.loads(str(data["meta"]))
         kind = meta["kind"]
         if kind == "FlatIndex":
-            idx: BaseIndex = FlatIndex(meta["dim"], meta["metric"])
-            idx._vectors = data["vectors"].astype(np.float32)
-            return idx
+            flat = FlatIndex(meta["dim"], meta["metric"])
+            flat._vectors = data["vectors"].astype(np.float32)
+            return flat
         if kind == "IVFIndex":
             ivf = IVFIndex(
                 meta["dim"], nlist=meta["nlist"], nprobe=meta["nprobe"], metric=meta["metric"]
             )
-            ivf._centroids = data["centroids"].astype(np.float32)
-            ivf.nlist = ivf._centroids.shape[0]
+            centroids = data["centroids"].astype(np.float32)
+            ivf._centroids = centroids
+            ivf.nlist = centroids.shape[0]
             ivf._vectors = data["vectors"].astype(np.float32)
             ivf._cell_of = [int(c) for c in data["cell_of"]]
             ivf._trained = True
