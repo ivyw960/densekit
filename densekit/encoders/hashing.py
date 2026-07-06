@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Sequence
-from typing import Literal
+from typing import Literal, TypeAlias
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from densekit.encoders.base import Encoder
 from densekit.linalg import l2_normalize
 from densekit.types import FloatArray
 
-Analyzer = Literal["word", "char"]
+Analyzer: TypeAlias = Literal["word", "char"]
 
 
 def _hash_token(token: str) -> int:
