@@ -9,6 +9,7 @@ judgements are skipped.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from typing import TypeAlias
 
 from densekit.eval.qrels import Qrels
 from densekit.metrics import (
@@ -19,7 +20,7 @@ from densekit.metrics import (
     reciprocal_rank,
 )
 
-Run = Mapping[str, Sequence[str]]
+Run: TypeAlias = Mapping[str, Sequence[str]]
 
 _DEFAULT_KS = (1, 5, 10)
 
@@ -57,7 +58,7 @@ class RetrievalEvaluator:
             totals["map"] = totals.get("map", 0.0) + average_precision(ranked, relevant)
 
         if n == 0:
-            return {name: 0.0 for name in self._metric_names()}
+            return dict.fromkeys(self._metric_names(), 0.0)
         return {name: totals.get(name, 0.0) / n for name in self._metric_names()}
 
     def _metric_names(self) -> list[str]:
