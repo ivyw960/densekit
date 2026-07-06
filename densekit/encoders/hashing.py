@@ -10,12 +10,15 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Sequence
+from typing import Literal
 
 import numpy as np
 
 from densekit.encoders.base import Encoder
 from densekit.linalg import l2_normalize
 from densekit.types import FloatArray
+
+Analyzer = Literal["word", "char"]
 
 
 def _hash_token(token: str) -> int:
@@ -25,23 +28,42 @@ def _hash_token(token: str) -> int:
 
 
 class HashingEncoder(Encoder):
-    """Feature-hashing encoder over whitespace tokens.
+    """Feature-hashing encoder over word or character n-grams.
 
     Parameters
     ----------
     dim:
         Width of the output embedding.
+    analyzer:
+        ``"word"`` splits on whitespace; ``"char"`` slides over characters,
+        which is more robust to typos and works across languages.
+    ngram_range:
+        Inclusive ``(min_n, max_n)`` n-gram sizes to emit.
     normalize:
         L2-normalize each row, so cosine and dot product coincide.
     lowercase:
         Lowercase text before tokenizing.
     """
 
-    def __init__(self, dim: int = 256, *, normalize: bool = True, lowercase: bool = True) -> None:
+    def __init__(
+        self,
+        dim: int = 256,
+        *,
+        analyzer: Analyzer = "word",
+        ngram_range: tuple[int, int] = (1, 1),
+        normalize: bool = True,
+        lowercase: bool = True,
+    ) -> None:
         if dim <= 0:
             msg = f"dim must be positive, got {dim}"
             raise ValueError(msg)
+        min_n, max_n = ngram_range
+        if min_n < 1 or max_n < min_n:
+            msg = f"invalid ngram_range {ngram_range}"
+            raise ValueError(msg)
         self._dim = int(dim)
+        self.analyzer: Analyzer = analyzer
+        self.ngram_range = (int(min_n), int(max_n))
         self.normalize = normalize
         self.lowercase = lowercase
 
@@ -49,10 +71,21 @@ class HashingEncoder(Encoder):
     def dim(self) -> int:
         return self._dim
 
+    def _ngrams(self, units: Sequence[str], joiner: str) -> list[str]:
+        min_n, max_n = self.ngram_range
+        grams: list[str] = []
+        n_units = len(units)
+        for n in range(min_n, max_n + 1):
+            for i in range(n_units - n + 1):
+                grams.append(joiner.join(units[i : i + n]))
+        return grams
+
     def _tokens(self, text: str) -> list[str]:
         if self.lowercase:
             text = text.lower()
-        return text.split()
+        if self.analyzer == "char":
+            return self._ngrams(list(text), "")
+        return self._ngrams(text.split(), " ")
 
     def encode(self, texts: Sequence[str]) -> FloatArray:
         out = np.zeros((len(texts), self._dim), dtype=np.float32)
