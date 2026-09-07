@@ -17,7 +17,7 @@ torch = ["torch>=1.13"]
 dev = [
   "pytest>=7.0",
   "pytest-cov>=4.0",
-  "ruff==0.5.7",
+  "ruff==0.16.6",
   "mypy==1.14.1",
 ]
 
